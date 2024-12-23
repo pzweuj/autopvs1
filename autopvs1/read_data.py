@@ -3,25 +3,42 @@
 # author: Jiguang Peng
 # created: 2019/6/27
 # modified: 2021/6/29
+# config: 2024-12-23
 
 import os
 import configparser
 from pyfaidx import Fasta
-from .pyhgvs.utils import read_transcripts
-from .utils import read_morbidmap, read_pathogenic_site, read_pvs1_levels, create_bed_dict, read_gene_alias
+from autopvs1.pyhgvs.utils import read_transcripts
+from autopvs1.utils import read_morbidmap, read_pathogenic_site, read_pvs1_levels, create_bed_dict, read_gene_alias
 
-BinPath = os.path.split(os.path.realpath(__file__))[0]
 
-config = configparser.ConfigParser()
-config.read(BinPath+'/config.ini')
-
-vep_cache = config['DEFAULT']['vep_cache']
-
-for top in config:
-    for key in config[top]:
-        if not config[top][key].startswith('/'):
-            config[top][key] = os.path.join(BinPath, config[top][key])
+def load_config(config_path="CONFIGMODIFIY_MARK"):
+    """加载配置文件
     
+    Args:
+        config_path: 配置文件路径，如果为None则使用默认路径
+    
+    Returns:
+        config: 配置对象
+    """
+    BinPath = os.path.split(os.path.realpath(__file__))[0]
+    config = configparser.ConfigParser()
+    
+    if config_path == "CONFIGMODIFIY_MARK":
+        config_path = os.path.join(BinPath, 'config.ini')
+    
+    config.read(config_path)
+    
+    # 处理相对路径
+    for top in config:
+        for key in config[top]:
+            if not config[top][key].startswith('/'):
+                config[top][key] = os.path.join(BinPath, config[top][key])
+    
+    return config
+
+config = load_config(config_path=None)
+vep_cache = config['DEFAULT']['vep_cache']
 
 pvs1_levels = read_pvs1_levels(config['DEFAULT']['pvs1levels'])
 gene_alias = read_gene_alias(config['DEFAULT']['gene_alias'])

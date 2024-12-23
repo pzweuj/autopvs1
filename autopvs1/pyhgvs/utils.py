@@ -2,9 +2,9 @@
 Helper functions.
 """
 
-from .models import Exon
-from .models import Position
-from .models import Transcript
+from pyhgvs.models import Exon
+from pyhgvs.models import Position
+from pyhgvs.models import Transcript
 
 
 def read_refgene(infile):

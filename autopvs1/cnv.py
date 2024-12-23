@@ -3,13 +3,12 @@
 # author: Jiguang Peng
 # created: 2019/6/27 21:54
 
-
 from collections import namedtuple
-from .strength import Strength
-from .utils import contained_in_bed
-from .read_data import pvs1_levels
-from .read_data import domain_hg19, hotspot_hg19, curated_region_hg19, exon_lof_popmax_hg19
-from .read_data import domain_hg38, hotspot_hg38, curated_region_hg38, exon_lof_popmax_hg38
+from autopvs1.strength import Strength
+from autopvs1.utils import contained_in_bed
+from autopvs1.read_data import pvs1_levels
+from autopvs1.read_data import domain_hg19, hotspot_hg19, curated_region_hg19, exon_lof_popmax_hg19
+from autopvs1.read_data import domain_hg38, hotspot_hg38, curated_region_hg38, exon_lof_popmax_hg38
 
 
 CNVRecord = namedtuple('CNVRecord', ('chrom', 'start', 'end', 'type'))
