@@ -51,7 +51,7 @@ tar xzf Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 
 ```bash
 git clone -b dev https://github.com/pzweuj/autopvs1.git
-cd autopvs1-dev
+cd autopvs1
 python3 setup install --user
 ```
 
