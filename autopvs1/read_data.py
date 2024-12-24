@@ -32,12 +32,12 @@ def load_config(config_path="CONFIGMODIFIY_MARK"):
     # 处理相对路径
     for top in config:
         for key in config[top]:
-            if not config[top][key].startswith('/'):
+            if not config[top][key][0] in ["/", "~", "$"]:
                 config[top][key] = os.path.join(BinPath, config[top][key])
     
     return config
 
-config = load_config(config_path=None)
+config = load_config("CONFIGMODIFIY_MARK")
 vep_cache = config['DEFAULT']['vep_cache']
 
 pvs1_levels = read_pvs1_levels(config['DEFAULT']['pvs1levels'])
@@ -52,9 +52,11 @@ with open(config['DEFAULT']['gene_trans']) as f:
         gene_trans[gene] = trans
         trans_gene[trans] = gene
 
+fasta_hg19 = config['HG19']['genome']
+fasta_hg38 = config['HG38']['genome']
 
-genome_hg19 = Fasta(config['HG19']['genome'])
-genome_hg38 = Fasta(config['HG38']['genome'])
+genome_hg19 = Fasta(fasta_hg19)
+genome_hg38 = Fasta(fasta_hg38)
 
 transcripts_hg19 = read_transcripts(open(config['HG19']['transcript']))
 transcripts_hg38 = read_transcripts(open(config['HG38']['transcript']))

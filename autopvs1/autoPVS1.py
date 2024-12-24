@@ -15,7 +15,7 @@ from collections import namedtuple
 from autopvs1.pvs1 import PVS1
 from autopvs1.cnv import PVS1CNV, CNVRecord
 from autopvs1.read_data import trans_gene, gene_trans, gene_alias, vep_cache
-from autopvs1.read_data import transcripts_hg19, transcripts_hg38, genome_hg19, genome_hg38
+from autopvs1.read_data import fasta_hg19, fasta_hg38, transcripts_hg19, transcripts_hg38, genome_hg19, genome_hg38
 from autopvs1.utils import vep2vcf, get_transcript, vep_consequence_trans, VCFRecord
 
 
@@ -31,7 +31,7 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 class AutoPVS1:
     """Run AutoPVS1"""
 
-    def __init__(self, vcfrecord, genome_version, user_trans=None):
+    def __init__(self, vcfrecord, genome_version, user_trans=None, vep_mode='refseq'):
         self.vcfrecord = self.get_vcfrecord(vcfrecord)
         self.chrom = self.vcfrecord.chrom
         self.pos = self.vcfrecord.pos
@@ -41,15 +41,18 @@ class AutoPVS1:
         self.user_trans = user_trans
         
         if genome_version in ['hg19', 'GRCh37']:
+            self.fasta = fasta_hg19
             self.genome_version = 'hg19'
             self.vep_assembly = 'GRCh37'
         elif genome_version in ['hg38', 'GRCh38']:
+            self.fasta = fasta_hg38
             self.genome_version = 'hg38'
             self.vep_assembly = 'GRCh38'
         else:
-            raise ValueError("Genome version must be hg19/GRCh37 or hg38/GRCh38.")
+            self.fasta = fasta_hg38
             self.genome_version = 'hg38'
             self.vep_assembly = 'GRCh38'
+            raise ValueError("Genome version must be hg19/GRCh37 or hg38/GRCh38.")
 
         self.id = id_generator()
         self.vep_input = '/tmp/vep.{0}.vcf'.format(self.id)
@@ -61,7 +64,7 @@ class AutoPVS1:
         self.vep_canonical = 'na'
         self.vep_pick = 'na'
         self.vep_consequence = 'na'
-        self.vep_mode = 'refseq'
+        self.vep_mode = vep_mode
         self.hgvs_c = 'na'
         self.hgvs_p = 'na'
         self.hgvs_g = 'na'
@@ -105,6 +108,7 @@ class AutoPVS1:
             --fork 2 \
             --canonical \
             --flag_pick \
+            --fasta ''' + self.fasta + ''' \
             --hgvs --hgvsg --symbol \
             --transcript_filter "stable_id match N[MR]_" \
             --distance 500 \

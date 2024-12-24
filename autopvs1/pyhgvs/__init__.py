@@ -94,9 +94,9 @@ BASES = BASE+
 """
 import re
 
-from pyhgvs.variants import justify_indel
-from pyhgvs.variants import normalize_variant
-from pyhgvs.variants import revcomp
+from autopvs1.pyhgvs.variants import justify_indel
+from autopvs1.pyhgvs.variants import normalize_variant
+from autopvs1.pyhgvs.variants import revcomp
 
 
 CHROM_PREFIX = 'chr'

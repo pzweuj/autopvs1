@@ -3,7 +3,7 @@ Methods for manipulating genetic variants.
 """
 
 
-from pyhgvs.models import Position
+from autopvs1.pyhgvs.models import Position
 
 
 _COMP = dict(A='T', C='G', G='C', T='A', N='N',
