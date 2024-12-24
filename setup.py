@@ -4,6 +4,7 @@ setup(
     name="autopvs1",
     version="0.1.0",
     packages=find_packages(),
+    package_data={"autopvs1": ["data/*", "config.ini"]},
     install_requires=[
         # 在这里列出依赖包
         "pyfaidx"
