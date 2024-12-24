@@ -1,9 +1,9 @@
 # AutoPVS1
 An automatic classification tool for PVS1 interpretation of null variants.
-![AutoPVS1](data/AutoPVS1.png)
+![AutoPVS1](autopvs1/data/AutoPVS1.png)
 
 A web version for AutoPVS1 is also provided: http://autopvs1.genetics.bgi.com
-![AutoPVS1App](data/AutoPVS1App.png)
+![AutoPVS1App](autopvs1/data/AutoPVS1App.png)
 
 :art: **AutoPVS1** is now compatible with **hg19/GRCh37** and **hg38/GRCh38**.
 
@@ -47,28 +47,17 @@ wget $FTP/current_fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembl
 tar xzf Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 ```
 
-### 2. pyfaidx
-Samtools provides a function “faidx” (FAsta InDeX), which creates a small flat index file “.fai” 
-allowing for fast random access to any subsequence in the indexed FASTA file, 
-while loading a minimal amount of the file in to memory. 
+### 2. autopvs1
 
-[pyfaidx](https://pypi.org/project/pyfaidx/) module implements pure Python classes for indexing, retrieval, 
-and in-place modification of FASTA files using a samtools compatible index.
+```bash
+git clone -b dev https://github.com/pzweuj/autopvs1.git
+cd autopvs1-dev
+python3 setup install --user
+```
 
-### 3. maxentpy
-[maxentpy](https://github.com/kepbod/maxentpy) is a python wrapper for MaxEntScan to calculate splice site strength.
-It contains two functions. score5 is adapt from [MaxEntScan::score5ss](http://hollywood.mit.edu/burgelab/maxent/Xmaxentscan_scoreseq.html) to score 5' splice sites. score3 is adapt from [MaxEntScan::score3ss](http://hollywood.mit.edu/burgelab/maxent/Xmaxentscan_scoreseq_acc.html) to score 3' splice sites. 
+### 3. Configuration
 
-maxentpy is already included in the **autopvs1**.
-
-### 4. pyhgvs
-[pyhgvs](https://github.com/counsyl/hgvs) provides a simple Python API for parsing, formatting, and normalizing HGVS names.
-But it only supports python2, I modified it to support python3 and added some other features. 
-It is also included in the **autopvs1**.
-
-### 5. Configuration
-
-`autopvs1/config.ini`
+`autopvs1-dev/autopvs1/config.ini`
 
 ```ini
 [DEFAULT]
@@ -110,6 +99,7 @@ You can specify the vep cache directory to use, default is `$HOME/.vep/`
 from autopvs1 import AutoPVS1
 demo = AutoPVS1('13-113803407-G-A', 'hg19')
 demo2 = AutoPVS1('13-113149093-G-A', 'hg38')
+
 if demo.islof:
     print(demo.hgvs_c, demo.hgvs_p, demo.consequence, demo.pvs1.criterion, 
           demo.pvs1.strength_raw, demo.pvs1.strength)
@@ -117,6 +107,9 @@ if demo.islof:
 # GRCh37 and GRCh38 is also supported
 demo = AutoPVS1('13-113803407-G-A', 'GRCh37')
 demo2 = AutoPVS1('13-113149093-G-A', 'GRCh38')
+
+# VEP Merged Cache supported
+demo = AutoPVS1('13-113803407-G-A', 'GRCh37', vep_mode='merged')
 ```
 
 ## FAQ
