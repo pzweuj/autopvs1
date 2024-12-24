@@ -10,8 +10,9 @@ from autopvs1.pyhgvs.models import Transcript
 from autopvs1.maxentpy import maxent
 from autopvs1.maxentpy.maxent import load_matrix5, load_matrix3
 from autopvs1.utils import contained_in_bed
-from autopvs1.read_data import genome_hg19, transcripts_hg19, domain_hg19, hotspot_hg19, curated_region_hg19
-from autopvs1.read_data import genome_hg38, transcripts_hg38, domain_hg38, hotspot_hg38, curated_region_hg38
+from autopvs1.read_data import load_config
+# from autopvs1.read_data import genome_hg19, transcripts_hg19, domain_hg19, hotspot_hg19, curated_region_hg19
+# from autopvs1.read_data import genome_hg38, transcripts_hg38, domain_hg38, hotspot_hg38, curated_region_hg38
 
 
 matrix5 = load_matrix5()
@@ -26,29 +27,32 @@ class Splicing:
     acceptor_threshold = 3
     percent_threshold = 0.7
 
-    def __init__(self, vcfrecord, transcript, genome_version):
+    def __init__(self, vcfrecord, transcript, genome_version, config_path=None):
         self.chrom = vcfrecord.chrom
         self.offset = int(vcfrecord.pos)
         self.ref = vcfrecord.ref
         self.alt = vcfrecord.alt
         self.transcript = transcript
-        
+
+        # 打开配置文件
+        config_dict = load_config(config_path)
+
         if genome_version in ['hg19', 'GRCh37']:
             self.genome_version = 'hg19'
             self.vep_assembly = 'GRCh37'
-            self.genome = genome_hg19
-            self.transcripts = transcripts_hg19
-            self.domain = domain_hg19
-            self.hotspot = hotspot_hg19
-            self.curated_region = curated_region_hg19
+            self.genome = config_dict["genome_hg19"]
+            self.transcripts = config_dict["transcripts_hg19"]
+            self.domain = config_dict["domain_hg19"]
+            self.hotspot = config_dict["hotspot_hg19"]
+            self.curated_region = config_dict["curated_region_hg19"]
         else:
             self.genome_version = 'hg38'
             self.vep_assembly = 'GRCh38'
-            self.genome = genome_hg38
-            self.transcripts = transcripts_hg38
-            self.domain = domain_hg38
-            self.hotspot = hotspot_hg38
-            self.curated_region = curated_region_hg38
+            self.genome = config_dict["genome_hg38"]
+            self.transcripts = config_dict["transcripts_hg38"]
+            self.domain = config_dict["domain_hg38"]
+            self.hotspot = config_dict["hotspot_hg38"]
+            self.curated_region = config_dict["curated_region_hg38"]
 
         self.type = 'NA'
         self.index = 'NA'

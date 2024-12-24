@@ -6,9 +6,10 @@
 from collections import namedtuple
 from autopvs1.strength import Strength
 from autopvs1.utils import contained_in_bed
-from autopvs1.read_data import pvs1_levels
-from autopvs1.read_data import domain_hg19, hotspot_hg19, curated_region_hg19, exon_lof_popmax_hg19
-from autopvs1.read_data import domain_hg38, hotspot_hg38, curated_region_hg38, exon_lof_popmax_hg38
+from autopvs1.read_data import load_config
+# from autopvs1.read_data import pvs1_levels
+# from autopvs1.read_data import domain_hg19, hotspot_hg19, curated_region_hg19, exon_lof_popmax_hg19
+# from autopvs1.read_data import domain_hg38, hotspot_hg38, curated_region_hg38, exon_lof_popmax_hg38
 
 
 CNVRecord = namedtuple('CNVRecord', ('chrom', 'start', 'end', 'type'))
@@ -18,7 +19,7 @@ class PVS1CNV:
     """
     CNV Dectection
     """
-    def __init__(self, cnvrecord, consequence, transcript, genome_version):
+    def __init__(self, cnvrecord, consequence, transcript, genome_version, config_path=None):
         self.chrom = cnvrecord.chrom
         self.start = cnvrecord.start
         self.end = cnvrecord.end
@@ -26,6 +27,18 @@ class PVS1CNV:
         self.consequence = consequence
         self.transcript = transcript
         
+        # 打开配置文件
+        config_dict = load_config(config_path)
+        domain_hg19 = config_dict["domain_hg19"]
+        hotspot_hg19 = config_dict["hotspot_hg19"]
+        curated_region_hg19 = config_dict["curated_region_hg19"]
+        exon_lof_popmax_hg19 = config_dict["exon_lof_popmax_hg19"]
+        domain_hg38 = config_dict["domain_hg38"]
+        hotspot_hg38 = config_dict["hotspot_hg38"]
+        curated_region_hg38 = config_dict["curated_region_hg38"]
+        exon_lof_popmax_hg38 = config_dict["exon_lof_popmax_hg38"]
+        self.pvs1_levels = config_dict["pvs1_levels"]
+
         if genome_version in ['hg19', 'GRCh37']:
             self.domain = domain_hg19
             self.hotspot = hotspot_hg19
@@ -95,6 +108,7 @@ class PVS1CNV:
             return Strength.Unmet
 
         gene_name = self.transcript.gene.name
+        pvs1_levels = self.pvs1_levels
         if gene_name in pvs1_levels:
             if pvs1_levels[gene_name] == 'L0':
                 return self.strength_raw

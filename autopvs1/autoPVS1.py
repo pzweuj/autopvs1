@@ -14,8 +14,7 @@ from collections import namedtuple
 
 from autopvs1.pvs1 import PVS1
 from autopvs1.cnv import PVS1CNV, CNVRecord
-from autopvs1.read_data import trans_gene, gene_trans, gene_alias, vep_cache
-from autopvs1.read_data import fasta_hg19, fasta_hg38, transcripts_hg19, transcripts_hg38, genome_hg19, genome_hg38
+from autopvs1.read_data import load_config
 from autopvs1.utils import vep2vcf, get_transcript, vep_consequence_trans, VCFRecord
 
 
@@ -31,7 +30,7 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 class AutoPVS1:
     """Run AutoPVS1"""
 
-    def __init__(self, vcfrecord, genome_version, user_trans=None, vep_mode='refseq'):
+    def __init__(self, vcfrecord, genome_version, user_trans=None, vep_mode='refseq', config_path=None):
         self.vcfrecord = self.get_vcfrecord(vcfrecord)
         self.chrom = self.vcfrecord.chrom
         self.pos = self.vcfrecord.pos
@@ -39,17 +38,32 @@ class AutoPVS1:
         self.alt = self.vcfrecord.alt
         self.vcfrecord = VCFRecord(self.chrom, self.pos, self.ref, self.alt)
         self.user_trans = user_trans
+        self.config_path = config_path
+
+        # 打开配置文件
+        config_dict = load_config(config_path)
+        self.fasta_hg19 = config_dict["fasta_hg19"]
+        self.fasta_hg38 = config_dict["fasta_hg38"]
+        self.transcripts_hg19 = config_dict["transcripts_hg19"]
+        self.transcripts_hg38 = config_dict["transcripts_hg38"]
+        self.genome_hg19 = config_dict["genome_hg19"]
+        self.genome_hg38 = config_dict["genome_hg38"]
+        self.vep_cache = config_dict["vep_cache"]
+        self.trans_gene = config_dict["trans_gene"]
+        self.gene_trans = config_dict["gene_trans"]
+        self.gene_alias = config_dict["gene_alias"]
+
         
         if genome_version in ['hg19', 'GRCh37']:
-            self.fasta = fasta_hg19
+            self.fasta = self.fasta_hg19
             self.genome_version = 'hg19'
             self.vep_assembly = 'GRCh37'
         elif genome_version in ['hg38', 'GRCh38']:
-            self.fasta = fasta_hg38
+            self.fasta = self.fasta_hg38
             self.genome_version = 'hg38'
             self.vep_assembly = 'GRCh38'
         else:
-            self.fasta = fasta_hg38
+            self.fasta = self.fasta_hg38
             self.genome_version = 'hg38'
             self.vep_assembly = 'GRCh38'
             raise ValueError("Genome version must be hg19/GRCh37 or hg38/GRCh38.")
@@ -74,9 +88,9 @@ class AutoPVS1:
         self.vep_filter()
 
         if self.genome_version == 'hg19':
-            self.transcript = get_transcript(self.vep_trans, transcripts_hg19)
+            self.transcript = get_transcript(self.vep_trans, self.transcripts_hg19)
         else:
-            self.transcript = get_transcript(self.vep_trans, transcripts_hg38)
+            self.transcript = get_transcript(self.vep_trans, self.transcripts_hg38)
 
         self.consequence = vep_consequence_trans(self.vep_consequence)
         self.islof = self.consequence in lof_type
@@ -102,7 +116,7 @@ class AutoPVS1:
         vepcommand = '''
             vep --offline \
             --''' + self.vep_mode + ''' --use_given_ref \
-            --dir_cache ''' + vep_cache + ''' \
+            --dir_cache ''' + self.vep_cache + ''' \
             --species "homo_sapiens" \
             --assembly ''' + self.vep_assembly + ''' \
             --fork 2 \
@@ -135,11 +149,11 @@ class AutoPVS1:
                 records = line.strip().split("\t")
                 info = dict(zip(header, records))
                 if info['SYMBOL'] == '-':
-                    info['SYMBOL'] = trans_gene.get(info['Feature'], "NA")
+                    info['SYMBOL'] = self.trans_gene.get(info['Feature'], "NA")
                 if info['SYMBOL'] == 'NA':
-                    info['SYMBOL'] = trans_gene.get(info['Feature'].split(".")[0], "NA")
-                if info['SYMBOL'] in gene_alias:
-                    info['SYMBOL'] = gene_alias.get(info['SYMBOL'])
+                    info['SYMBOL'] = self.trans_gene.get(info['Feature'].split(".")[0], "NA")
+                if info['SYMBOL'] in self.gene_alias:
+                    info['SYMBOL'] = self.gene_alias.get(info['SYMBOL'])
                 var = VAR(info['Uploaded_variation'], info['SYMBOL'],
                           info['Feature'], info['CANONICAL'], info['PICK'], info)
                 if var.varid in var_dict:
@@ -150,8 +164,8 @@ class AutoPVS1:
         for varid in var_dict:
             final_choose = []
             for var_anno in var_dict[varid]:
-                if (gene_trans.get(var_anno.gene) == var_anno.trans or
-                    gene_trans.get(var_anno.gene, "na").split(".")[0] == var_anno.trans.split(".")[0]):
+                if (self.gene_trans.get(var_anno.gene) == var_anno.trans or
+                    self.gene_trans.get(var_anno.gene, "na").split(".")[0] == var_anno.trans.split(".")[0]):
                     final_choose.append(var_anno)
 
             final = ''
@@ -186,7 +200,7 @@ class AutoPVS1:
 
     def run_pvs1(self):
         pvs1 = PVS1(self.vcfrecord, self.consequence, self.hgvs_c, 
-                    self.hgvs_p, self.transcript, self.genome_version)
+                    self.hgvs_p, self.transcript, self.genome_version, self.config_path)
         return pvs1
 
 
@@ -195,9 +209,10 @@ class AutoPVS1CNV:
     cnvpattern1 = re.compile(r'(del|dup|tdup|ntdup)\((chr)?(\d+|X|Y):(\d+)-(\d+)\)', re.I)
     cnvpattern2 = re.compile(r'(chr)?(\d+|X|Y)-(\d+)-(\d+)-(del|dup|tdup|ntdup)', re.I)
 
-    def __init__(self, cnv, genome_version, user_trans=None):
+    def __init__(self, cnv, genome_version, user_trans=None, config_path=None):
         cnvmatch1 = self.cnvpattern1.match(cnv)
         cnvmatch2 = self.cnvpattern2.match(cnv)
+        self.config_path = config_path
         if cnvmatch1:
             self.cnvtype = cnvmatch1.group(1).upper()
             self.chrom = cnvmatch1.group(3)
@@ -242,18 +257,31 @@ class AutoPVS1CNV:
             self.vep_run()
             self.vep_filter()
             if self.genome_version == 'hg19':
-                self.transcript = get_transcript(self.vep_trans, transcripts_hg19)
+                self.transcript = get_transcript(self.vep_trans, self.transcripts_hg19)
             else:
-                self.transcript = get_transcript(self.vep_trans, transcripts_hg38)
+                self.transcript = get_transcript(self.vep_trans, self.transcripts_hg38)
             self.pvs1 = self.runpvs1()
 
         os.system('rm ' + self.vep_input + ' ' + self.vep_output)
+
+        # 打开配置文件
+        config_dict = load_config(config_path)
+        self.fasta_hg19 = config_dict["fasta_hg19"]
+        self.fasta_hg38 = config_dict["fasta_hg38"]
+        self.transcripts_hg19 = config_dict["transcripts_hg19"]
+        self.transcripts_hg38 = config_dict["transcripts_hg38"]
+        self.genome_hg19 = config_dict["genome_hg19"]
+        self.genome_hg38 = config_dict["genome_hg38"]
+        self.vep_cache = config_dict["vep_cache"]
+        self.trans_gene = config_dict["trans_gene"]
+        self.gene_trans = config_dict["gene_trans"]
+        self.gene_alias = config_dict["gene_alias"]
 
     def vep_run(self):
         print(self.chrom, self.start, self.end, self.cnvtype, file=open(self.vep_input, 'w'))
         vepcommand = '''
             vep --offline --refseq --use_given_ref \
-                --dir_cache ''' + vep_cache + ''' \
+                --dir_cache ''' + self.vep_cache + ''' \
                 --species "homo_sapiens" \
                 --assembly ''' + self.vep_assembly + ''' \
                 --fork 1 \
@@ -283,9 +311,9 @@ class AutoPVS1CNV:
                 records = line.strip().split("\t")
                 info = dict(zip(header, records))
                 if info['SYMBOL'] == '-':
-                    info['SYMBOL'] = trans_gene.get(info['Feature'], "-")
+                    info['SYMBOL'] = self.trans_gene.get(info['Feature'], "-")
                 if info['SYMBOL'] == '-':
-                    info['SYMBOL'] = trans_gene.get(info['Feature'].split(".")[0], "NA")
+                    info['SYMBOL'] = self.trans_gene.get(info['Feature'].split(".")[0], "NA")
                 var = VAR(info['Uploaded_variation'], info['SYMBOL'],
                           info['Feature'], info['CANONICAL'], info['PICK'], info)
                 if var.varid in var_dict:
@@ -296,12 +324,12 @@ class AutoPVS1CNV:
         for varid in var_dict:
             final_choose = []
             for var_anno in var_dict[varid]:
-                if gene_trans.get(var_anno.gene) == var_anno.trans:
+                if self.gene_trans.get(var_anno.gene) == var_anno.trans:
                     final_choose.append(var_anno)
 
             if len(final_choose) == 0:
                 for var_anno in var_dict[varid]:
-                    if (gene_trans.get(var_anno.gene, "na").split(".")[0] ==
+                    if (self.gene_trans.get(var_anno.gene, "na").split(".")[0] ==
                             var_anno.trans.split(".")[0]):
                         final_choose.append(var_anno)
 
@@ -337,13 +365,23 @@ class AutoPVS1CNV:
         pvs1 = PVS1CNV(self.cnvrecord,
                        self.vep_consequence,
                        self.transcript,
-                       self.genome_version)
+                       self.genome_version,
+                       self.config_path)
         return pvs1
 
 
 def main():
     genome_version = sys.argv[1]
     anno_fh = open(sys.argv[2])
+    config_path = None if len(sys.argv) < 4 else sys.argv[3]
+    
+    # 打开配置文件
+    config_dict = load_config(config_path)
+    transcripts_hg19 = config_dict["transcripts_hg19"]
+    transcripts_hg38 = config_dict["transcripts_hg38"]
+    genome_hg19 = config_dict["genome_hg19"]
+    genome_hg38 = config_dict["genome_hg38"]
+
     header = list()
     for line in anno_fh:
         if line.strip().startswith("##"):
@@ -369,7 +407,7 @@ def main():
         vcf_id = "-".join([vcfrecord.chrom, str(vcfrecord.pos), vcfrecord.ref, vcfrecord.alt])
         
         if consequence in lof_type and transcript:
-            lof_pvs1 = PVS1(vcfrecord, consequence, info['HGVSc'], info['HGVSp'], transcript, genome_version)
+            lof_pvs1 = PVS1(vcfrecord, consequence, info['HGVSc'], info['HGVSp'], transcript, genome_version, config_path)
             trans_name = lof_pvs1.transcript.full_name
 
             print(vcf_id,

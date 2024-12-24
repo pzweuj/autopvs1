@@ -7,9 +7,10 @@ import re
 from autopvs1.strength import Strength
 from autopvs1.splicing import Splicing
 from autopvs1.utils import contained_in_bed
-from autopvs1.read_data import pvs1_levels
-from autopvs1.read_data import genome_hg19, domain_hg19, hotspot_hg19, curated_region_hg19, exon_lof_popmax_hg19, pathogenic_hg19
-from autopvs1.read_data import genome_hg38, domain_hg38, hotspot_hg38, curated_region_hg38, exon_lof_popmax_hg38, pathogenic_hg38
+from autopvs1.read_data import load_config
+# from autopvs1.read_data import pvs1_levels
+# from autopvs1.read_data import genome_hg19, domain_hg19, hotspot_hg19, curated_region_hg19, exon_lof_popmax_hg19, pathogenic_hg19
+# from autopvs1.read_data import genome_hg38, domain_hg38, hotspot_hg38, curated_region_hg38, exon_lof_popmax_hg38, pathogenic_hg38
 
 
 class PVS1:
@@ -25,7 +26,7 @@ class PVS1:
        Pathogenic variant(s) upstream of closest potential in-frame start condon
     """
 
-    def __init__(self, vcfrecord, consequence, cHGVS, pHGVS, transcript, genome_version):
+    def __init__(self, vcfrecord, consequence, cHGVS, pHGVS, transcript, genome_version, config_path=None):
         self.consequence = consequence
         self.vcfrecord = vcfrecord
         self.chrom = vcfrecord.chrom
@@ -36,24 +37,28 @@ class PVS1:
         self.pHGVS = pHGVS
         self.transcript = transcript
 
+        # 打开配置文件
+        config_dict = load_config(config_path)
+        self.pvs1_levels = config_dict["pvs1_levels"]
+
         if genome_version in ['hg19', 'GRCh37']:
             self.genome_version = 'hg19'
             self.vep_assembly = 'GRCh37'
-            self.genome = genome_hg19
-            self.domain = domain_hg19
-            self.hotspot = hotspot_hg19
-            self.curated_region = curated_region_hg19
-            self.exon_lof_popmax = exon_lof_popmax_hg19
-            self.pathogenic_dict = pathogenic_hg19
+            self.genome = config_dict["genome_hg19"]
+            self.domain = config_dict["domain_hg19"]
+            self.hotspot = config_dict["hotspot_hg19"]
+            self.curated_region = config_dict["curated_region_hg19"]
+            self.exon_lof_popmax = config_dict["exon_lof_popmax_hg19"]
+            self.pathogenic_dict = config_dict["pathogenic_hg19"]
         else:
             self.genome_version = 'hg38'
             self.vep_assembly = 'GRCh38'
-            self.genome = genome_hg38
-            self.domain = domain_hg38
-            self.hotspot = hotspot_hg38
-            self.curated_region = curated_region_hg38
-            self.exon_lof_popmax = exon_lof_popmax_hg38
-            self.pathogenic_dict = pathogenic_hg38
+            self.genome = config_dict["genome_hg38"]
+            self.domain = config_dict["domain_hg38"]
+            self.hotspot = config_dict["hotspot_hg38"]
+            self.curated_region = config_dict["curated_region_hg38"]
+            self.exon_lof_popmax = config_dict["exon_lof_popmax_hg38"]
+            self.pathogenic_dict = config_dict["pathogenic_hg38"]
 
         self.altcodon = 'na'
         self.init_path = 0
@@ -261,14 +266,14 @@ class PVS1:
                 return Strength.Moderate
             else:
                 return self.strength_raw
-        elif gene_name in pvs1_levels:
-            if pvs1_levels[gene_name] == 'L0':
+        elif gene_name in self.pvs1_levels:
+            if self.pvs1_levels[gene_name] == 'L0':
                 return self.strength_raw
-            elif pvs1_levels[gene_name] == 'L1':
+            elif self.pvs1_levels[gene_name] == 'L1':
                 return self.strength_raw.downgrade(1)
-            elif pvs1_levels[gene_name] == 'L2':
+            elif self.pvs1_levels[gene_name] == 'L2':
                 return self.strength_raw.downgrade(2)
-            elif pvs1_levels[gene_name] == 'L3':
+            elif self.pvs1_levels[gene_name] == 'L3':
                 return Strength.Unmet
             else:
                 return Strength.Unset
